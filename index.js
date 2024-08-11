@@ -46,25 +46,34 @@ app.post('/register',async (req,res)=>{
   }
 })
 
-app.post('/login',async (req,res)=>{
-  const {email,password} = req.body;
-  const userDoc = await User.findOne({email});
-  if(userDoc){
-    const passOk = bcrypt.compareSync(password,userDoc.password);
-    if(passOk){
-      jwt.sign({email:userDoc.email,
-        id:userDoc._id,
-        name:userDoc.name},jwtSecret,{},(err,token)=>{
-        if(err) throw err;
-        res.cookie('token',token).json(userDoc);
-      });
-    }else{
-      res.status(422).json('pass not ok');
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
     }
-  }else{
-    res.json('not found!');
+    const userDoc = await User.findOne({ email });
+    if (!userDoc) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    const passOk = bcrypt.compareSync(password, userDoc.password);
+    if (!passOk) {
+      return res.status(401).json({ error: 'Incorrect password.' });
+    }
+    jwt.sign({email: userDoc.email,id: userDoc._id,name: userDoc.name},jwtSecret,(err, token) => {
+        if (err) {
+          console.error('Error generating token:', err);
+          return res.status(500).json({ error: 'Internal server error during token generation.' });
+        }
+        res.cookie('token', token, { httpOnly: true, secure: true }).json(userDoc);
+      }
+    );
+  } catch (err) {
+    console.error('Error during login:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
-})
+});
+
 
 app.get('/profile', (req, res) => {
   const { token } = req.cookies;
@@ -194,6 +203,6 @@ app.get('/bookings', async (req, res) => {
 })
 
 
-app.listen(4000,()=>{
+app.listen(process.env.port,()=>{
   console.log('connected');
 });
