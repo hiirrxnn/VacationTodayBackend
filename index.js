@@ -16,8 +16,8 @@ const Place = require('./Models/Place');
 app.use(cookieParser());
 
 app.use(cors({
-  credentials:true,
-  origin:true
+  origin:true,
+  credentials:true
 }));
 
 app.use(express.json());
@@ -65,7 +65,7 @@ app.post('/login', async (req, res) => {
           console.error('Error generating token:', err);
           return res.status(500).json({ error: 'Internal server error during token generation.' });
         }
-        res.cookie('token', token, { httpOnly: true, secure: true }).json(userDoc);
+        res.cookie('token', token).json(userDoc);
       }
     );
   } catch (err) {
@@ -156,7 +156,8 @@ app.put('/places', async (req, res) => {
 
 app.get('/user-places',(req,res)=>{
   const {token} = req.cookies;
-  jwt.verify( token , jwtSecret , {} , async(err,userData)=>{
+  jwt.verify( token , jwtSecret , {} , async (err,userData)=>{
+    if(err) throw err;
     const {id} = userData;
     res.json(await Place.find({owner:id}));
     console.log(id);
